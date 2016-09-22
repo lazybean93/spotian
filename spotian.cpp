@@ -15,7 +15,7 @@
 #include <fstream>
 
 bool paramCountWrong(int argc) {
-	if (argc != 2) {
+	if (argc != 4) {
 		std::cout << "Parameter fehlerhaft!" << std::endl;
 		return true;
 	}
@@ -487,20 +487,20 @@ int main(int argc, char* argv[]) {
 			<< std::endl;
 //Some Variables
 
-	std::string encodedUser = "2288216724422431217822112167231017271661";
-	std::string encodedPass = "22112398225522882288225523982211";
+	std::string User = argv[1];
+	std::string Pass = argv[2];
 	std::string templog = variables::instance().getHomedir()
 			+ "/spotifytemplog_" + variables::instance().getDisplay() + ".txt";
 	std::string log = variables::instance().getHomedir() + "/spotifylog_"
 			+ variables::instance().getDisplay() + ".txt";
-	std::string uri = argv[1];
+	std::string uri = argv[3];
 
 	bool loginloggingactive = true;
 
 //Login
 	int err = 0;
 	do {
-		err = login(decode(encodedUser), decode(encodedPass), templog, log,
+		err = login(User, Pass, templog, log,
 				loginloggingactive);
 		if (err > 0)
 			logline("Login Failed, errcode: " + to_string(err), true);
