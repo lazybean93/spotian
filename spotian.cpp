@@ -171,6 +171,7 @@ int login(std::string user, std::string pass, std::string spotLogFile,
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1005;
 	execToString("xte 'str " + user + "'");
+	logline(user,true);
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1006;
 	execToString("xte 'mousemove 470 320'");
@@ -180,6 +181,7 @@ int login(std::string user, std::string pass, std::string spotLogFile,
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1008;
 	execToString("xte 'str " + pass + "'");
+	logline(pass,true);
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1009;
 	execToString("xte 'mousemove 470 420'");
