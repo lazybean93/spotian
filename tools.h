@@ -22,14 +22,15 @@ std::string execToString(std::string command);
 std::string execDisplayToString(std::string command);
 std::vector<std::string> split(std::string org, std::string separator);
 void logline(std::string log, bool active);
-std::string to_string(float number, int precision = 0);
+std::string numToString(float number, int precision = 0);
+std::string toUTF8(std::string str);
 int strfind(std::string str, std::string query);
 std::string decode(std::string str);
 int getProcIdByName(std::string procName);
 std::string readFile(std::string filename, bool *success = NULL);
 double timevalDelta(timeval end, timeval start);
 void deleteFile(std::string filename);
-void deleteOld(std::string directory, std::string number);
+void deleteOld(std::string directory, int number);
 void deleteFolder(std::string foldername);
 void writeToFile(std::string content, std::string file, bool append);
 std::string dbus(std::string service, std::string path, std::string method,
@@ -41,5 +42,5 @@ bool waitLoad(float maxLoad, float time, bool log, float timeout,
 		std::string reason = "");
 std::string startDisplay();
 void mkdir(std::string folder);
-
+bool is_file_exist(std::string fileName);
 #endif /* TOOLS_H_ */

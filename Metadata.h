@@ -34,6 +34,7 @@ public:
 	std::string getAlbum();
 	std::string getTitle();
 	std::string getUrl();
+	std::string getUrlMP3();
 	std::string getTrackNumber();
 	int getLength();
 	bool isAd();

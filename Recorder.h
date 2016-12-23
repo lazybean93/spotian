@@ -48,8 +48,8 @@ public:
 	bool checkSong(std::string filename, bool logActive);
 	int calcSleepTime();
 	bool sleepTimed();
-	void startRecording(Metadata m, std::string folder, int num);
-	int recordSong(Metadata m1, std::string folder, int num);
+	void startRecording(Metadata m, int num);
+	int recordSong(Metadata m1, int num);
 };
 
 #endif /* RECORDER_H_ */

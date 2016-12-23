@@ -31,6 +31,9 @@ std::string Metadata::getTitle() {
 std::string Metadata::getUrl() {
 	return url;
 }
+std::string Metadata::getUrlMP3() {
+	return url+".mp3";
+}
 std::string Metadata::getTrackNumber() {
 	return trackNumber;
 }
@@ -84,13 +87,22 @@ Metadata::Metadata() {
 	return;
 }
 std::string Metadata::getFileName(int i) {
-	int maxlen = 80;
-	std::string number = to_string(i);
+
+	//4+5*3 = 24 -> 89 / 3 frei
+	int maxlen = 89/3;
+	std::string number = numToString(i);
 	while (number.length() < 4)
 		number = "0" + number;
-	std::string fileName = number + " - " + artist.substr(0, maxlen) + " - "
-			+ album.substr(0, maxlen) + " - " + trackNumber + " - "
-			+ title.substr(0, maxlen) + ".mp3";
+	std::string fileName = number; 			//4
+	fileName += " - "; 						//3
+	fileName += toUTF8(artist.substr(0, maxlen)); 	//
+	fileName += " - "; 						//3
+	fileName += toUTF8(album.substr(0, maxlen));	//
+	fileName += " - ";						//3
+	fileName += trackNumber;				//3
+	fileName += " - ";						//3
+	fileName += toUTF8(title.substr(0, maxlen));	//
+	fileName += ".mp3";
 	return fileName;
 }
 void Metadata::print() {
@@ -99,6 +111,6 @@ void Metadata::print() {
 	logline(prefix + "Title:\t" + title, true);
 	logline(prefix + "TrackNumber:\t" + trackNumber, true);
 	logline(prefix + "Url:\t" + url, true);
-	logline(prefix + "Length:\t" + to_string(length), true);
+	logline(prefix + "Length:\t" + numToString(length), true);
 }
 

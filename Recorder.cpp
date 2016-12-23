@@ -39,20 +39,20 @@ void Recorder::killArecord() {
 	int arecordPid = getProcIdByName("arecord");
 	while (success && arecordPid != -1) {
 		kill(arecordPid, SIGTERM);
-		readFile("/proc/" + to_string(arecordPid) + "/stat", &success);
+		readFile("/proc/" + numToString(arecordPid) + "/stat", &success);
 		usleep(0.1 * 1000000);
 	}
 }
 Recorder::Recorder() {
 	hwplug = "0,1";
 	prefix = "Recorder:\t";
-	arecordLogfile = variables::instance().getHomedir() + "/arecordLog.txt";
+	arecordLogfile = variables::instance().getHomeDir() + "/arecordLog.txt";
 }
 bool Recorder::checkOverrun() {
 	bool success;
 	std::string content = readFile(arecordLogfile, &success) + "\n";
-	logline(content, true);
 	if (!success || content.find("overrun!!!") != std::string::npos) {
+		logline("Overrun found!", true);
 		return false;
 	}
 	return true;
@@ -102,7 +102,7 @@ bool Recorder::checkSongLength(std::string filename) {
 	int lengthShould = song.getLength();
 	if (1.2 * lengthIs < lengthShould || lengthIs < lengthShould - 10) {
 		logline("Song is to short!", true);
-		logline(to_string(lengthIs) + " " + to_string(lengthShould), true);
+		logline(numToString(lengthIs) + " " + numToString(lengthShould), true);
 		return false;
 	}
 	return true;
@@ -117,7 +117,7 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 	BASS_STREAM_DECODE);
 	int err = BASS_ErrorGetCode();
 	if (err != 0)
-		logline(prefix + "Bass Error:" + to_string(err), true);
+		logline(prefix + "Bass Error:" + numToString(err), true);
 	if (chan) {
 		QWORD len = BASS_ChannelSeconds2Bytes(chan, 0.0); // BASS_ChannelGetLevel takes 20ms from the channel
 		char data[len];
@@ -135,7 +135,7 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 	}
 	BASS_Free();
 	if (vu20ms.size() == 0) {
-		logline(prefix + to_string(vu20ms.size()) + " VU values detected",
+		logline(prefix + numToString(vu20ms.size()) + " VU values detected",
 				true);
 		return false;
 	}
@@ -174,7 +174,7 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 		if (cut > 0) {
 			logline(
 					prefix + "Secound try successfull: Silence found at "
-							+ to_string((float) cut / vu20ms.size()), true);
+							+ numToString((float) cut / vu20ms.size()), true);
 		}
 	}
 
@@ -185,12 +185,12 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 
 	float factor = 0.02;
 	logline(
-			prefix + to_string((vu20ms.size() - 1) * factor) + "s -> "
-					+ to_string((float) cut * factor) + "s: "
-					+ to_string(vu20ms.at(cut)), true);
+			prefix + numToString((vu20ms.size() - 1) * factor) + "s -> "
+					+ numToString((float) cut * factor) + "s: "
+					+ numToString(vu20ms.at(cut)), true);
 
 	if (getSongErrors(1) > 0)
-		logline(prefix + "Addtime 1: " + to_string(getSongErrors(1)), true);
+		logline(prefix + "Addtime 1: " + numToString(getSongErrors(1)), true);
 
 	if (vu20ms.size() - cut > (8 + getSongErrors(1)) * (1 / factor)) {
 		logline(prefix + "Difference > 8s + Addtime", true);
@@ -202,41 +202,41 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 		//Cut out beginning of next song and store to tmp.mp3
 		cut = factor * cut; //std::cout << cut << " " << (int) cut << std::endl;
 		std::string cutstr = "mp3splt -g %\[@o\] \"" + filename + "\" 0.0 "
-				+ to_string((int) cut / 60) + "."
-				+ to_string(round(10 * (cut - ((int) cut / 60) * 60)) / 10)
-				+ " -d " + variables::instance().getHomedir() + " -o tmp 2>&1;";
+				+ numToString((int) cut / 60) + "."
+				+ numToString(round(10 * (cut - ((int) cut / 60) * 60)) / 10)
+				+ " -d " + variables::instance().getHomeDir() + " -o tmp 2>&1;";
 		execToString(cutstr);
 
 		//Trim song silence and store to tmp_trimmed.mp3
 		execToString(
-				"mp3splt -r -g %\[@o\] " + variables::instance().getHomedir()
+				"mp3splt -r -g %\[@o\] " + variables::instance().getHomeDir()
 						+ "/tmp.mp3 2>&1;");
 
 		//Compare Songlengths of tmp and tmp_trimmed version
 		int lengthCut = getSongLength(
-				variables::instance().getHomedir() + "/tmp.mp3");
+				variables::instance().getHomeDir() + "/tmp.mp3");
 		int lengthTrim = getSongLength(
-				variables::instance().getHomedir() + "/tmp_trimmed.mp3");
+				variables::instance().getHomeDir() + "/tmp_trimmed.mp3");
 
 		if (1.2 * lengthTrim < lengthCut || lengthTrim < lengthCut - 10) {
 			logline("Trimmed Song is to short - take Cutted", true);
 			execToString(
-					"mv " + variables::instance().getHomedir() + "/tmp.mp3 "
-							+ variables::instance().getHomedir()
+					"mv " + variables::instance().getHomeDir() + "/tmp.mp3 "
+							+ variables::instance().getHomeDir()
 							+ "/tmp_trimmed.mp3");
 		}
 
-		deleteFile(variables::instance().getHomedir() + "/tmp.mp3");
+		deleteFile(variables::instance().getHomeDir() + "/tmp.mp3");
 		logline(prefix + "Check for wrong cutting", true);
 		if (vu20ms.size() - cut * (1 / factor) > 2 && getSongErrors(2) < 5) {
 			incSongErrors(2);
-			logline(prefix + "Errorcount: " + to_string(getSongErrors(2)),
+			logline(prefix + "Errorcount: " + numToString(getSongErrors(2)),
 					true);
-			checkSong(variables::instance().getHomedir() + "/tmp_trimmed.mp3",
+			checkSong(variables::instance().getHomeDir() + "/tmp_trimmed.mp3",
 					logActive);
 
 			std::string resetFilename = "mv "
-					+ variables::instance().getHomedir()
+					+ variables::instance().getHomeDir()
 					+ "/tmp_trimmed.mp3 \"";
 			std::vector<std::string> splitfold = split(
 					split(filename, ".mp3").at(0), "/");
@@ -244,6 +244,7 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 				resetFilename += "/" + splitfold.at(i);
 			resetFilename += ".mp3\" 2>&1";
 			execToString(resetFilename);
+			deleteFile(variables::instance().getHomeDir() + "/tmp_trimmed.mp3");
 
 			if (getSongErrors(2) >= 5) {
 				return false;
@@ -259,7 +260,7 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 }
 int Recorder::calcSleepTime() {
 	if (getSongErrors(0) > 0)
-		logline(prefix + "Addtime 0: " + to_string(getSongErrors(0)), true);
+		logline(prefix + "Addtime 0: " + numToString(getSongErrors(0)), true);
 
 	int sleeptime = song.getLength() + getSongErrors(0);
 	songSleep = sleeptime - 4;
@@ -268,7 +269,7 @@ int Recorder::calcSleepTime() {
 bool Recorder::sleepTimed() {
 	//Check additional sleep time
 
-	logline(prefix + "Sleeping " + to_string(songSleep), true);
+	logline(prefix + "Sleeping " + numToString(songSleep), true);
 
 	sleep(songSleep / 3);
 
@@ -280,8 +281,10 @@ bool Recorder::sleepTimed() {
 
 	return true;
 }
-void Recorder::startRecording(Metadata m, std::string folder, int num) {
+void Recorder::startRecording(Metadata m, int num) {
+
 	song = m;
+
 	std::string cmd = "arecord -q -f cd -t raw -D hw:" + hwplug + " 2>"
 			+ arecordLogfile + " | lame --add-id3v2 ";
 	cmd += "--tt \"" + m.getTitle() + "\" "; //Title
@@ -289,12 +292,12 @@ void Recorder::startRecording(Metadata m, std::string folder, int num) {
 	cmd += "--tl \"" + m.getAlbum() + "\" "; //Album
 	cmd += "--tn \"" + m.getTrackNumber() + "\" "; //TitleNumber
 	cmd += "--tc \"" + m.getUrl() + "\" "; //Spotify Id as comment
-	cmd += "-r -b 192 - \"" + folder + m.getFileName(num)
+	cmd += "-r -b 192 - \"" + variables::instance().getDataDir() + "/" + m.getUrlMP3()
 			+ "\" >/dev/null 2>&1 &";
 	execToString(cmd);
 }
-int Recorder::recordSong(Metadata m1, std::string folder, int num) {
-	startRecording(m1, folder, num);
+int Recorder::recordSong(Metadata m1, int num) {
+	startRecording(m1, num);
 
 	Timeout songTimeout(calcSleepTime());
 	Timeout adTimeout(0);

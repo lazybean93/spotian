@@ -3,6 +3,7 @@
  *  - Playlist besser einbinden
  *  	- Next soll TrackId kennen -> Play Status lässt sich erkennen
  *  - Check ob lieder vorhanden allein anhand von Playlist
+ *  - Dateiname darf keine zeichen abseits von utf-8 enthalten
  */
 
 #include "variables.h"
@@ -14,13 +15,6 @@
 #include "Playlist.h"
 #include <fstream>
 
-bool paramCountWrong(int argc) {
-	if (argc != 4) {
-		std::cout << "Parameter fehlerhaft!" << std::endl;
-		return true;
-	}
-	return false;
-}
 void killSpotify() {
 	bool success = true;
 	if (variables::instance().getSpotifyPid() == -1)
@@ -29,16 +23,19 @@ void killSpotify() {
 	while (success && variables::instance().getSpotifyPid() != -1) {
 		kill(variables::instance().getSpotifyPid(), SIGTERM);
 		readFile(
-				"/proc/" + to_string(variables::instance().getSpotifyPid())
+				"/proc/" + numToString(variables::instance().getSpotifyPid())
 						+ "/stat", &success);
 		usleep(0.1 * 1000000);
 	}
 	variables::instance().setSpotifyPid(-1);
-	deleteFolder(variables::instance().getHomedir() + "/.cache/spotify");
+	deleteFolder(variables::instance().getHomeDir() + "/.cache/spotify");
 }
 void startSpotify(std::string spotLogFile) {
+	logline("startSpotify", true);
 	killSpotify();
-	execToString("rm .config/spotify/Users/lazybean93-user/*.bnk");
+	variables::instance().setMainPage(true);
+	execToString(
+			"rm .config/spotify/Users/lazybean93-user/*.bnk >/dev/null 2>&1 &");
 	variables::instance().setSpotifyPid(
 			atoi(
 					execToString(
@@ -47,8 +44,8 @@ void startSpotify(std::string spotLogFile) {
 
 }
 void resetCache() {
-	deleteFolder(variables::instance().getHomedir() + "/.cache/spotify");
-	deleteFolder(variables::instance().getHomedir() + "/.config/spotify");
+	deleteFolder(variables::instance().getHomeDir() + "/.cache/spotify");
+	deleteFolder(variables::instance().getHomeDir() + "/.config/spotify");
 }
 int checkError(std::string in, std::string out) {
 	//Moves content of logfile to out
@@ -63,9 +60,9 @@ int checkError(std::string in, std::string out) {
 		//Move content to our
 		int lines = strfind(content, "\n");
 		std::string head = execToString(
-				"head -n " + to_string(lines) + " " + in);
+				"head -n " + numToString(lines) + " " + in);
 		std::string tail = execToString(
-				"tail -n +" + to_string(lines) + " " + in);
+				"tail -n +" + numToString(lines) + " " + in);
 		writeToFile(head, out, true);
 		writeToFile(tail, in, false);
 		//Do the real check
@@ -128,14 +125,14 @@ bool checkLoaded(std::string log) {
 }
 int login(std::string user, std::string pass, std::string spotLogFile,
 		std::string checkedLog, bool logActive) {
+
 	int windowWidth = 904;
 	int windowHeight = 668;
-	logline("startSpotify", logActive);
 	resetCache();
 	startSpotify(spotLogFile);
 	while (execToString(
-			"wmctrl -lG | grep " + to_string(windowWidth) + " | grep "
-					+ to_string(windowHeight)) == "") {
+			"wmctrl -lG 2>/dev/null | grep " + numToString(windowWidth)
+					+ " | grep " + numToString(windowHeight)) == "") {
 		int err = checkError(spotLogFile, checkedLog);
 		if (err > 0) {
 			return err;
@@ -148,43 +145,42 @@ int login(std::string user, std::string pass, std::string spotLogFile,
 	logline("Move Window", logActive);
 	//while (execToString("wmctrl -lG | grep \"0   320  500  Spotian spotify\"") == "") {
 	while (execToString(
-			"wmctrl -lG | grep \"16   " + to_string(windowWidth) + "  "
-					+ to_string(windowHeight) + "\" | grep Spotify") == "") {
+			"wmctrl -lG  2>/dev/null | grep \"16   " + numToString(windowWidth)
+					+ "  " + numToString(windowHeight) + "\" | grep Spotify")
+			== "") {
 		logline("Check for Error", logActive);
 		int err = checkError(spotLogFile, checkedLog);
 		if (err > 0) {
 			return err;
 		}
 		execToString(
-				"wmctrl -r spotify -e 0,0,0," + to_string(windowWidth) + ","
-						+ to_string(windowHeight));
+				"wmctrl -r spotify -e 0,0,0," + numToString(windowWidth) + ","
+						+ numToString(windowHeight));
 		if (!waitLoad(MAXLOADLOADING, 0.5, logActive, WAITLOADINGTIMEOUT))
 			return 1003;
 	}
 	//Enter Userdata, and Login
 	logline("Enter Userdata, and Login", logActive);
-	float time = 0.2;
-	execToString("xte 'mousemove 470 270'");
+	float time = 0.5;
+	execToString("xte 'mousemove 470 290'");
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1004;
 	execToString("xte 'mouseclick 1'");
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1005;
 	execToString("xte 'str " + user + "'");
-	logline(user,true);
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1006;
-	execToString("xte 'mousemove 470 320'");
+	execToString("xte 'mousemove 470 340'");
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1007;
 	execToString("xte 'mouseclick 1'");
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1008;
 	execToString("xte 'str " + pass + "'");
-	logline(pass,true);
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1009;
-	execToString("xte 'mousemove 470 420'");
+	execToString("xte 'mousemove 470 430'");
 	if (!waitLoad(MAXLOADLOADING, time, false, WAITLOADINGTIMEOUT))
 		return 1010;
 	execToString("xte 'mouseclick 1'");
@@ -205,8 +201,10 @@ int login(std::string user, std::string pass, std::string spotLogFile,
 	}
 
 	if (!Playlist::instance().openPlaylist(
-			"spotify:album:40lxWZ19hZgH0s71KGXOyo"))
+			variables::instance().getTestPlaylist()))
 		return 1011;
+	if (!Player::instance().pause())
+		return 1012;
 
 	float cpuload;
 	float maxload = 1.0;
@@ -215,11 +213,11 @@ int login(std::string user, std::string pass, std::string spotLogFile,
 	do {
 		int err = checkError(spotLogFile, checkedLog);
 		if (err > 0) {
-			logline("error! " + to_string(err), logActive);
+			logline("error! " + numToString(err), logActive);
 			return err;
 		}
 		cpuload = avgCPULoad(avgLoadTime);
-		logline("CPU-Load: " + to_string(cpuload), logActive);
+		logline("CPU-Load: " + numToString(cpuload), logActive);
 	} while (cpuload > maxload);
 //	//No local library
 //	execToString("xte 'keydown Control_R' 'key p' 'keyup Control_R'");
@@ -232,12 +230,12 @@ int login(std::string user, std::string pass, std::string spotLogFile,
 	//Check data
 	if (atoi(
 			execToString(
-					"cat " + variables::instance().getHomedir()
+					"cat " + variables::instance().getHomeDir()
 							+ "/.config/spotify/prefs | grep autologin | wc -l").c_str())
 			< 3) {
 		logline(
 				execToString(
-						"cat " + variables::instance().getHomedir()
+						"cat " + variables::instance().getHomeDir()
 								+ "/.config/spotify/prefs | grep autologin | wc -l"),
 				logActive);
 		return 1001;
@@ -250,12 +248,29 @@ int login(std::string user, std::string pass, std::string spotLogFile,
 	return 0;
 
 }
+void doLogin() {
+	variables::instance().prefix.push_back("Login");
+	variables& var = variables::instance();
+	int err = 0;
+	do {
+		err = login(var.getUser(), var.getPass(), var.getTempLogFile(),
+				var.getLogFile(), var.getLoginLoggingActive());
+		if (err > 0)
+			logline("Login Failed, errcode: " + numToString(err), true);
+	} while (err > 0);
+
+	variables::instance().prefix.pop_back();
+}
 int init(std::string uri, std::string spotLogFile) {
 	//Only needed to press play and record if 0 will be returned
 
 	Player& player = Player::instance();
 	Playlist& playlist = Playlist::instance();
+
 	//Doing Soundcheck
+
+	variables::instance().prefix.push_back("Soundcheck");
+
 	bool err;
 	do {
 		err = false;
@@ -269,7 +284,7 @@ int init(std::string uri, std::string spotLogFile) {
 			return 2014;
 		execToString(
 				"wmctrl -r Spotify -b toggle,maximized_vert,maximized_horz");
-		if (playlist.playPlaylist("spotify:album:40lxWZ19hZgH0s71KGXOyo") != 0)
+		if (playlist.playPlaylist(variables::instance().getTestPlaylist()) != 0)
 			err = true;
 		if (!player.pause())
 			return 2012;
@@ -282,20 +297,41 @@ int init(std::string uri, std::string spotLogFile) {
 		sleep(10);
 	} while (err || !Recorder::instance().testPlaying());
 
+	variables::instance().prefix.pop_back();
+
 	//Set Playlist
+	variables::instance().prefix.push_back("Set Playlist");
+
+	Metadata m1;
+
 	if (playlist.playPlaylist(uri) != 0) {
 		return 2001;
 	}
 
-	sleep(5);
 	//Go to beginning of first Track
-	if (!player.pause() || !player.previous()) {
+	if (!player.pauseAtStart()) {
 		return 2002;
 	}
-	logline("Finish", true);
+
+	//Read Playlist
 	playlist.readPlaylist();
+
+	//Create Folder
 	playlist.createFolder();
+
+	variables::instance().prefix.pop_back();
+
 	return 0;
+}
+void doInit() {
+	variables::instance().prefix.push_back("Init\t");
+
+	while (init(variables::instance().getUri(),
+			variables::instance().getTempLogFile()) > 0)
+		variables::instance().prefix.pop_back();
+
+	variables::instance().prefix.pop_back();
+
 }
 int checkCorrectSong(Metadata m1, int num) {
 	Playlist& playlist = Playlist::instance();
@@ -323,6 +359,21 @@ int checkCorrectSong(Metadata m1, int num) {
 	}
 	return 0;
 }
+int moveToSong(int num) {
+	Playlist& playlist = Playlist::instance();
+
+	for (int i = 0; i < playlist.size(); i++) {
+		if (Metadata() == playlist.at(i)) {
+			logline("Spotify is at Song " + numToString(i), true);
+			logline("Spotian is at Song " + numToString(num - 1), true);
+			if (num - i > 1)
+				playlist.seek(num);
+			break;
+		}
+	}
+
+	return 0;
+}
 std::string findSong(Metadata m1) {
 	std::vector<std::string> files = split(
 			execToString(
@@ -347,22 +398,33 @@ std::string findSong(Metadata m1) {
 	}
 	return "";
 }
-int copySong(Metadata m1, int num) {
+int copySong(Metadata m, int num) {
 	Playlist& playlist = Playlist::instance();
-	std::string copy = findSong(m1);
+	std::string copy = findSong(m);
 
 	if (copy != "") {
 		logline("Copy from old Recordings", true);
 		std::string cmd = "cp \"" + string_replace(copy, "\"", "\\\"")
-				+ "\"* \"" + playlist.getFolder() + m1.getFileName(num) + "\"";
+				+ "\"* \"" + variables::instance().getDataDir() + "/"
+				+ m.getUrlMP3() + "\"";
 		execToString(cmd);
-		int errNextSong = playlist.nextSong();
-		if (errNextSong != 0) {
-			return 5009;
-		}
 	} else
 		return 1;
 	return 0;
+}
+void printCurrentSong(int track, int size, Metadata song) {
+	std::string num_str = numToString(track);
+	while (num_str.size() < numToString(size).size())
+		num_str = "0" + num_str;
+
+	logline(num_str + "/" + numToString(size) + " " + song.getFileName(track),
+			true);
+}
+void setSymlink(Metadata m, int num) {
+	execToString(
+			"cd " + variables::instance().getDataDir() + "; ln -sf ../data/"
+					+ m.getUrlMP3() + " \"../" + Playlist::instance().getName()
+					+ "/" + m.getFileName(num) + "\"");
 }
 int recordSong(int num) {
 //State: Spotify is Started, Playlist is Loaded, track is not Playing
@@ -371,179 +433,181 @@ int recordSong(int num) {
 	Recorder& recorder = Recorder::instance();
 	Playlist& playlist = Playlist::instance();
 
-//Compare metadata to Playlist
-	Metadata m1;
-	int correctSongErr = checkCorrectSong(m1, num);
-	if (correctSongErr > 0)
-		return correctSongErr;
-
-	logline(m1.getFileName(num), true);
-
-//Remove old version of Song
-	std::string full_number = to_string(num);
-	while (full_number.length() < 4)
-		full_number = "0" + full_number;
-	deleteOld(playlist.getFolder(), full_number);
+//Echo current Song
+	printCurrentSong(num, playlist.size(), playlist.at(num - 1));
+	if (checkCorrectSong(Metadata(),num)>0)
+		return 5002;
 
 //Search for Song
-	int copy = copySong(m1, num);
-	if (copy > 999)
-		return copy;
-	if (copy == 1) {
-		if (!player.pauseAtStart())
+	if (!is_file_exist(
+			variables::instance().getDataDir() + "/"
+					+ playlist.at(num - 1).getUrlMP3())) {
+		int copy = copySong(playlist.at(num - 1), num);
+		if (copy == 1) {
+
+			//Compare metadata to Playlist
+			Metadata m1;
+
+			if (!player.pauseAtStart())
 				return 5010;
-		//Start Recording
+			//Start Recording
 
-		int errRecording = recorder.recordSong(m1, playlist.getFolder(), num);
-		if (errRecording > 999)
-			return errRecording;
-		bool ad = false;
-		if (errRecording == 1)
-			ad = true;
+			int errRecording = recorder.recordSong(m1, num);
+			if (errRecording > 999)
+				return errRecording;
+			bool ad = false;
+			if (errRecording == 1)
+				ad = true;
 
-		//Track has been recorded. Invisible ad has been played.
-		//Next Track, or visible ad is playing
+			//Track has been recorded. Invisible ad has been played.
+			//Next Track, or visible ad is playing
 
-		Metadata m2;
-		if (m2.isAd()) {
-			logline("Got more ads", true);
-			Timeout adTimeout(ADTIMEOUT);
-			while (m2.isAd()) {
+			Metadata m2;
+			if (m2.isAd()) {
+				logline("Got more ads", true);
+				Timeout adTimeout(ADTIMEOUT);
+				while (m2.isAd()) {
 
-				if (!adTimeout.inTime())
-					return 5004;
-				sleep(2);
-				m2 = Metadata();
+					if (!adTimeout.inTime())
+						return 5004;
+					sleep(2);
+					m2 = Metadata();
+				}
+				logline("Got beyond ad", true);
 			}
-			logline("Got beyond ad", true);
-		}
 
-		//Next Track is playing, check for metadata
-		if (m2.getError())
-			return 5005;
+			//Next Track is playing, check for metadata
+			if (m2.getError())
+				return 5005;
 
-		//Next Track is not playing after Advertisement
-		if (ad && !player.isPlaying()) {
-			logline("Had advertisement, and now... something went wrong", true);
-			if (m2 != playlist.at(0)) {
-				//What the hell is happening here????
-				sleep(5);
-				if (!player.isPlaying()) {
-					player.play();
+			//Next Track is not playing after Advertisement
+			if (ad && !player.isPlaying()) {
+				logline("Had advertisement, and now... something went wrong",
+						true);
+				if (m2 != playlist.at(0)) {
+					//What the hell is happening here????
 					sleep(5);
-					if (player.isPlaying()) {
-						m2 = Metadata();
-						m2.print();
-						int correctSongErr = checkCorrectSong(m2, num+1);
-						if (correctSongErr > 0)
-							return correctSongErr;
-					} else
-						return 5006;
+					if (!player.isPlaying()) {
+						player.play();
+						sleep(5);
+						if (player.isPlaying()) {
+							m2 = Metadata();
+							m2.print();
+							int correctSongErr = checkCorrectSong(m2, num + 1);
+							if (correctSongErr > 0)
+								return correctSongErr;
+						} else
+							return 5006;
+					}
 				}
 			}
+
+			//Check Song, eventually short it
+
+			if (!recorder.checkOverrun())
+				return 5007;		//check for overrun
+			logline("Check Song", true);
+			recorder.resetSongErrors(2);
+
+			bool check = recorder.checkSong(
+					variables::instance().getDataDir() + "/" + m1.getUrlMP3(),
+					true);
+
+			if (!check) {
+				logline("Check Failed, record again!", true);
+				return 5008;
+			}
+
+			logline("Finished Recording", true);
+
+			if (player.isPlaying()) {
+				playlist.incrementTrack();
+			}
 		}
-
-		//Check Song, eventually short it
-
-		if (!recorder.checkOverrun())
-			return 5007;		//check for overrun
-		logline("Check Song", true);
-		recorder.resetSongErrors(2);
-
-		execToString(
-				"mv \"" + variables::instance().getHomedir() + "/"
-						+ playlist.getFolder() + m1.getFileName(num) + "\" \""
-						+ variables::instance().getHomedir()
-						+ "/tmp_check.mp3\"");
-		bool check = recorder.checkSong(
-				variables::instance().getHomedir() + "/tmp_check.mp3", true);
-		execToString(
-				"mv \"" + variables::instance().getHomedir()
-						+ "/tmp_check.mp3\" \""
-						+ variables::instance().getHomedir() + "/"
-						+ playlist.getFolder() + m1.getFileName(num) + "\"");
-
-		if (!check) {
-			deleteOld(playlist.getFolder(), full_number);
-			logline("Check Failed, record again!", true);
-			return 5008;
-		}
-
-		logline("Finished Recording", true);
-
-		if (player.isPlaying()) {
-			playlist.incrementTrack();
-		}
+	} else {
+		int err = playlist.nextSong();
+		if (err>0) return err;
 	}
+
+	setSymlink(playlist.at(num - 1), num);
 
 	return 0;
 }
-int main(int argc, char* argv[]) {
-
-	deleteFile("commands.txt");
-
-	if (paramCountWrong(argc))
-		return 0;	//Check Parameters
-
-	std::cout << "Compiled on " __DATE__ << " at " << __TIME__ << std::endl
-			<< std::endl;
-//Some Variables
-
-	std::string User = argv[1];
-	std::string Pass = argv[2];
-	std::string templog = variables::instance().getHomedir()
-			+ "/spotifytemplog_" + variables::instance().getDisplay() + ".txt";
-	std::string log = variables::instance().getHomedir() + "/spotifylog_"
-			+ variables::instance().getDisplay() + ".txt";
-	std::string uri = argv[3];
-
-	bool loginloggingactive = true;
-
-//Login
-	int err = 0;
-	do {
-		err = login(User, Pass, templog, log,
-				loginloggingactive);
-		if (err > 0)
-			logline("Login Failed, errcode: " + to_string(err), true);
-	} while (err > 0);
-
-//Init
-
-	while (init(uri, templog) > 0)
-		;
-
+void doRecord() {
+	variables::instance().prefix.push_back("Record");
 	Playlist& playlist = Playlist::instance();
 
-	//Track is from init Playlist -> Playlist is not available
-	if (Metadata().getUrl() != "spotify:track:4YuGhuEypxkqhd3QdewSuk") {
-
+//Track is from init Playlist -> Playlist is not available
+	if (Metadata().getUrl() != variables::instance().getTestTrack()) {
 		int i = 1;
 
 		do {
 			int err = recordSong(i);
-			while (err > 0) {
-				logline("Recording Failed, errcode: " + to_string(err), true);
-				do {
-					logline("reset", true);
-					while (init(uri, templog) > 0)
-						;
-					logline("init success!", true);
-				} while (playlist.seek(i) != 0);
-				logline("seek complete", true);
+			if (err > 0) {
+				deleteFile(
+						variables::instance().getDataDir() + "/"
+								+ playlist.at(i).getUrlMP3());
+				logline("Recording Failed, errcode: " + numToString(err), true);
+				doInit();
 
-				err = recordSong(i);
-			}
-			i++;
+				i = 1;
+			} else
+				i++;
 		} while (!playlist.isFinished());
+	} else {
+		logline("Playlist is not available", true);
 	}
-
+	variables::instance().prefix.pop_back();
+}
+void doExit() {
 	killSpotify();
 	std::string killdisplay = execToString(
 			"tightvncserver -kill " + variables::instance().getDisplay());
-	logline(killdisplay, true);
+}
+bool doLoad(int argc, char* argv[]) {
+	variables& var = variables::instance();
+	var.prefix.push_back("Load\t");
 
-//Continue Syncthing
-//execToString("kill -s CONT syncthing");
-	logline("Finish", true);
+	deleteFile("commands.txt");
+
+	logline(
+			"Compiled on " + std::string(__DATE__) + " at "
+					+ std::string(__TIME__), true);
+//Some Variables
+
+	var.setUser(argv[1]);
+	var.setPass(argv[2]);
+	var.setUri(argv[3]);
+
+	var.prefix.pop_back();
+	return true;
+
+}
+int main(int argc, char* argv[]) {
+
+	Timeout t0(0);
+
+	if (!doLoad(argc, argv))
+		return false;
+
+	doLogin();
+
+	std::string timelogin = t0.getFormatTime();
+	Timeout t1(0);
+
+	doInit();
+
+	std::string timeinit = t1.getFormatTime();
+	Timeout t2(0);
+
+	doRecord();
+
+	doExit();
+
+	std::string timerecord = t2.getFormatTime();
+	std::string timetotal = t0.getFormatTime();
+
+	logline(
+			"Elapsed time: " + timetotal + " | " + timelogin + " | " + timeinit
+					+ " | " + timerecord, true);
 }

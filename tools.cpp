@@ -14,6 +14,8 @@
 #include "variables.h"
 #include "timeout.h"
 
+#include "utf8.h"
+
 #include <sys/types.h>
 #include <dirent.h>
 
@@ -145,7 +147,7 @@ std::string execToString(std::string command) {
 	}
 	pclose(pipe);
 	//pclose2(pipe,pid);
-	//logline(to_string(pid),true);
+	//logline(numToString(pid),true);
 	execToStringDebug(
 			"echo \"" + split(command, " ").at(0) + "\" >> commands.txt");
 	return result;
@@ -166,16 +168,24 @@ std::vector<std::string> split(std::string org, std::string separator) {
 void logline(std::string log, bool active) {
 	if (active) {
 		std::string date = getDate();
-		std::cout << date.substr(0, date.length() - 1) << " - " << log
-				<< std::endl;
+		std::cout << date.substr(0, date.length() - 1) << " - ";
+		for (int i = 0; i < variables::instance().prefix.size(); i++)
+			std::cout << variables::instance().prefix.at(i) << "\t";
+		std::cout << log << std::endl;
 	}
 }
-std::string to_string(float number, int precision) {
+std::string numToString(float number, int precision) {
 	std::stringstream ss; //create a stringstream
 	if (precision > 0)
 		ss << std::fixed << std::setprecision(precision);
 	ss << number; //add number to the stream
 	return ss.str(); //return a string with the contents of the stream
+}
+std::string toUTF8(std::string str) {
+	std::string utf8line;
+	utf8::utf16to8(str.begin(), str.end(), back_inserter(utf8line));
+
+	return utf8line;
 }
 int strfind(std::string str, std::string query) {
 	int npos = 0;
@@ -258,18 +268,22 @@ double timevalDelta(timeval end, timeval start) {
 	double endTime = end.tv_sec + (double) end.tv_usec / 1000000;
 	return endTime - startTime;
 }
-
+bool is_file_exist(std::string fileName) {
+	std::ifstream infile(fileName.c_str());
+	return infile.good();
+}
 void deleteFile(std::string filename) {
 	remove(filename.c_str());
 }
-void deleteOld(std::string directory, std::string number) {
+void deleteOld(std::string directory, int number) {
 	DIR *dir;
 	struct dirent *ent;
 	if ((dir = opendir(directory.c_str())) != NULL) {
 		/* print all the files and directories within directory */
 		while ((ent = readdir(dir)) != NULL) {
 			std::string file = std::string(ent->d_name);
-			if (file != "." && file != ".." && file.substr(0, 4) == number)
+			if (file != "." && file != ".."
+					&& atoi(file.substr(0, 4).c_str()) == number)
 				deleteFile(directory + file);
 			//deleteFile(directory+file);
 		}
@@ -320,7 +334,7 @@ std::string changeFormat(std::string str) {
 }
 
 int getUTime(int pid) {
-	std::string stat = readFile("/proc/" + to_string(pid) + "/stat");
+	std::string stat = readFile("/proc/" + numToString(pid) + "/stat");
 	std::vector<std::string> splitStat = split(stat, " ");
 	return atoi(splitStat.at(13).c_str());
 }
@@ -343,8 +357,11 @@ bool waitLoad(float maxLoad, float time, bool log, float timeout,
 	//Maximum waittime is "timeout", or infinite if timeout equals 0
 	//return false if timeout reached
 
-	std::string status = "waitLoad(maxLoad: " + to_string(maxLoad, 2)
-			+ "\ttimeinterval: " + to_string(time, 2) + ")";
+	variables::instance().prefix.push_back("waitLoad");
+
+	std::string status = "maxLoad: " + numToString(maxLoad, 2)
+			+ "\ttimeinterval: " + numToString(time, 2) + "\tTimeout: "
+			+ numToString(timeout, 2);
 
 	if (reason == "")
 		logline(status, log);
@@ -358,14 +375,21 @@ bool waitLoad(float maxLoad, float time, bool log, float timeout,
 
 		if (timeout > 0 && !inTime.inTime()) {
 			logline("Reached timeout", true);
+			variables::instance().prefix.pop_back();
 			return false;
 		} else {
 			cpuload = avgCPULoad(time);
-			logline(
-					"CPU-Load: " + to_string(cpuload, 2) + "\tTimeout: "
-							+ to_string(timeout, 2), log);
+			logline("CPU-Load: " + numToString(cpuload, 2), log);
 		}
 	} while (cpuload > maxLoad);
+
+	logline(
+			"maxLoad: " + numToString(maxLoad, 2) + "\ttimeinterval: "
+					+ numToString(time, 2) + "\tTimeout: "
+					+ numToString(timeout, 2) + "\tBusy for: "
+					+ numToString(inTime.getRunningTime(), 2), log);
+
+	variables::instance().prefix.pop_back();
 
 	return true;
 }
