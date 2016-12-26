@@ -38,7 +38,7 @@ std::string dbus(std::string service, std::string path, std::string method,
 std::string changeFormat(std::string str);
 int getUTime(int pid);
 float avgCPULoad(float time);
-bool waitLoad(float maxLoad, float time, bool log, float timeout,
+bool waitLoad(float maxLoad, float time, bool log, float timeout, int AVGConsiderLast,
 		std::string reason = "");
 std::string startDisplay();
 void mkdir(std::string folder);

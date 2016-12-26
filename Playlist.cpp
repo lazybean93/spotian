@@ -7,7 +7,7 @@
 
 #include "Playlist.h"
 
-std::string Playlist::playlistNameUri(std::string uri) {
+std::string Playlist::playlistNameUri(std::string uri, bool addDate) {
 	std::string res = "";
 	std::vector<std::string> splited = split(uri, ":");
 	std::string url = "http://open.spotify.com";
@@ -29,7 +29,9 @@ std::string Playlist::playlistNameUri(std::string uri) {
 				"\"><meta property=\"twitter:player\" content=");
 		res = titleparts[0].substr(51) + " - " + res;
 	} else {
-		res = titleparts[0] + " - " + date;
+		res = titleparts[0];
+		if (addDate)
+			res += " - " + date;
 	}
 	//logline(res, true);
 	return changeFormat(res);
@@ -53,26 +55,26 @@ bool Playlist::openPlaylist(std::string uri) {
 	float time = 0.1;
 	float maxload = 50;
 	execToString("xte 'mousemove 327 35'");
-	if (!waitLoad(maxload, time, false, WAITLOADINGTIMEOUT))
+	if (!waitLoad(maxload, time, false, WAITLOADINGTIMEOUT, 0))
 		return 1004;
 	execToString("xte 'mouseclick 1'");
-	if (!waitLoad(maxload, time, false, WAITLOADINGTIMEOUT))
+	if (!waitLoad(maxload, time, false, WAITLOADINGTIMEOUT, 0))
 		return 1005;
 	execToString("xte 'str " + uri + "'");
-	if (!waitLoad(maxload, time, false, WAITLOADINGTIMEOUT))
+	if (!waitLoad(maxload, time, false, WAITLOADINGTIMEOUT, 0))
 		return 1006;
 	execToString("xte 'key Return'");
-	if (!waitLoad(maxload, time, false, WAITLOADINGTIMEOUT))
+	if (!waitLoad(maxload, time, false, WAITLOADINGTIMEOUT, 0))
 		return 1007;
 
-	while (!player.isPlaying())
+	while (!Player::instance().isPlaying())
 		if (!timeout.inTime())
 			return false;
 
-	if (!waitLoad(MAXLOADLOADING, 1, true, WAITLOADINGTIMEOUT,
+	if (!waitLoad(MAXLOADLOADING, 1, true, WAITLOADINGTIMEOUT, 5,
 			"Waiting for Playlist Loading"))
 		return false;
-	variables::instance().setMainPage(false);
+	Variables::instance().setMainPage(false);
 	return true;
 }
 int Playlist::playPlaylist(std::string uri) {
@@ -85,19 +87,19 @@ int Playlist::playPlaylist(std::string uri) {
 
 	Metadata m1;
 	logline(prefix + "Open URI: " + uri, true);
-	if (variables::instance().getMainPage()) {
+	if (Variables::instance().getMainPage()) {
 		logline(prefix + "Sleeping some time", true);
 		sleep(10);
 		logline(prefix + "Wokeup!", true);
 	} else {
-		if (!player.pause())
+		if (!Player::instance().pause())
 			return 4021;
 	}
 	if (!openPlaylist(uri))
 		return 4022;
 
 	Timeout timeout = Timeout(60);
-	while (!recorder.testPlaying())
+	while (!Recorder::instance().testPlaying())
 		if (!timeout.inTime())
 			return 4023;
 	currentTrack = 1;
@@ -117,7 +119,7 @@ void Playlist::readPlaylist() {
 			exit(errNextSong);
 		}
 		current = Metadata();
-	} while (current != playlist.at(0) && player.isPlaying());
+	} while (current != playlist.at(0) && Player::instance().isPlaying());
 
 	currentTrack = 1;
 
@@ -140,7 +142,7 @@ int Playlist::nextSong() {
 	Metadata current = Metadata();
 	do {
 		Timeout timeChange = Timeout(10.0);
-		if (!player.next())
+		if (!Player::instance().next())
 			return 4001;
 
 		while (current == Metadata() && timeChange.inTime())
@@ -186,12 +188,12 @@ int Playlist::seek(int i) {
 		}
 
 		Timeout timeout = Timeout(60);
-		while (!recorder.testPlaying())
+		while (!Recorder::instance().testPlaying())
 			if (!timeout.inTime())
 				return 4014;
 
 		sleep(4);
-		if (!player.pause() || !player.previous())
+		if (!Player::instance().pause() || !Player::instance().previous())
 			return 4013;
 	}
 	return 0;

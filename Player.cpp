@@ -84,7 +84,7 @@ bool Player::pause() {
 	if (!res) //sending Pause failed
 		return false;
 
-	bool wait = waitLoad(MAXLOADPAUSED, 0.2, true, WAITLOADTIMEOUTPAUSED,
+	bool wait = waitLoad(MAXLOADPAUSED, 0.2, true, WAITLOADTIMEOUTPAUSED, 0,
 			prefix + "after Pause");
 	if (!wait) {
 		//load too high, second attempt
@@ -92,7 +92,7 @@ bool Player::pause() {
 		if (!res) //sending Pause failed
 			return false;
 
-		wait = waitLoad(MAXLOADPAUSED, 0.2, true, WAITLOADTIMEOUTPAUSECHECK,
+		wait = waitLoad(MAXLOADPAUSED, 0.2, true, WAITLOADTIMEOUTPAUSECHECK, 0,
 				prefix + "after Pause");
 		if (!wait)
 			return false; //load too high!
@@ -105,7 +105,7 @@ bool Player::pause() {
 }
 bool Player::play() {
 	logline(prefix + "play!", true);
-	bool res = waitLoad(MAXLOADPAUSED, 0.2, true, WAITLOADTIMEOUTPAUSED,
+	bool res = waitLoad(MAXLOADPAUSED, 0.2, true, WAITLOADTIMEOUTPAUSED, 0,
 			prefix + "before Play");
 	if (!res)
 		return false;

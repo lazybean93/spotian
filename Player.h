@@ -10,7 +10,7 @@
 
 #include <dbus/dbus.h>
 #include "tools.h"
-#include "variables.h"
+#include "Variables.h"
 #include <unistd.h> //sleep
 
 class Player {

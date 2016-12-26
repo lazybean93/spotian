@@ -11,8 +11,9 @@
 #include <iomanip>
 #include <ctime>
 #include "tools.h"
-#include "variables.h"
-#include "timeout.h"
+#include "Variables.h"
+#include "Timeout.h"
+#include "Display.h"
 
 #include "utf8.h"
 
@@ -22,6 +23,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <signal.h>
 #include <string.h>
 #include <sys/wait.h>
@@ -169,8 +171,8 @@ void logline(std::string log, bool active) {
 	if (active) {
 		std::string date = getDate();
 		std::cout << date.substr(0, date.length() - 1) << " - ";
-		for (int i = 0; i < variables::instance().prefix.size(); i++)
-			std::cout << variables::instance().prefix.at(i) << "\t";
+		for (int i = 0; i < Variables::instance().prefix.size(); i++)
+			std::cout << Variables::instance().prefix.at(i) << "\t";
 		std::cout << log << std::endl;
 	}
 }
@@ -311,11 +313,12 @@ std::string dbus(std::string service, std::string path, std::string method,
 		bool *success) {
 	std::string res = execToString(
 			"#std::string_dbus \nqdbus " + service + " " + path + " " + method
-					+ " 2>tmp_" + variables::instance().getDisplay() + ".txt");
+					+ " 2>tmp_" + Display::instance().getDisplay() + ".txt");
 	std::string check = readFile(
-			"tmp_" + variables::instance().getDisplay() + ".txt");
-	deleteFile("tmp_" + variables::instance().getDisplay() + ".txt");
+			"tmp_" + Display::instance().getDisplay() + ".txt");
+	deleteFile("tmp_" + Display::instance().getDisplay() + ".txt");
 	if (check.length() > 1) {
+		logline(check,true);
 		if (success != NULL)
 			*success = false;
 		return "";
@@ -342,22 +345,31 @@ float avgCPULoad(float time) {
 	timeval startTime, endTime;
 	gettimeofday(&startTime, 0);
 
-	int start = getUTime(variables::instance().getSpotifyPid());
+	int start = getUTime(Variables::instance().getSpotifyPid());
 
 	usleep(time * 1000000);
 
-	int end = getUTime(variables::instance().getSpotifyPid());
+	int end = getUTime(Variables::instance().getSpotifyPid());
 	gettimeofday(&endTime, 0);
 
 	return (float) (end - start) / timevalDelta(endTime, startTime);
 }
+float calcAVGofCPULoads(std::vector<float> oldLoads, int considerLast) {
+	if (oldLoads.size() < considerLast)
+		return -100;
+	float result = 0;
+	for (int i = 0; i < considerLast; i++) {
+		result += oldLoads.at(oldLoads.size() - (1 + i));
+	}
+	return result / (float) considerLast;
+}
 bool waitLoad(float maxLoad, float time, bool log, float timeout,
-		std::string reason) {
+		int AVGConsiderLast, std::string reason) {
 	//Wait until CPUload over "time" is lower than "maxLoad
 	//Maximum waittime is "timeout", or infinite if timeout equals 0
 	//return false if timeout reached
 
-	variables::instance().prefix.push_back("waitLoad");
+	Variables::instance().prefix.push_back("waitLoad");
 
 	std::string status = "maxLoad: " + numToString(maxLoad, 2)
 			+ "\ttimeinterval: " + numToString(time, 2) + "\tTimeout: "
@@ -370,18 +382,33 @@ bool waitLoad(float maxLoad, float time, bool log, float timeout,
 
 	Timeout inTime = Timeout(timeout);
 
+	std::vector<float> oldCPULoads;
+
 	float cpuload = 100.0;
 	do {
 
 		if (timeout > 0 && !inTime.inTime()) {
 			logline("Reached timeout", true);
-			variables::instance().prefix.pop_back();
+			Variables::instance().prefix.pop_back();
 			return false;
 		} else {
 			cpuload = avgCPULoad(time);
-			logline("CPU-Load: " + numToString(cpuload, 2), log);
+			if (AVGConsiderLast > 0) {
+				oldCPULoads.push_back(cpuload);
+				logline(
+						"CPU-Load: " + numToString(cpuload, 2) + "\t AVG-CPU "
+								+ numToString(AVGConsiderLast) + " Samples: "
+								+ numToString(
+										calcAVGofCPULoads(oldCPULoads, AVGConsiderLast)),
+						log);
+			} else {
+				logline("CPU-Load: " + numToString(cpuload, 2), log);
+				fabs(2.0);
+				;
+			}
+
 		}
-	} while (cpuload > maxLoad);
+	} while (cpuload > maxLoad && fabs(cpuload-calcAVGofCPULoads(oldCPULoads,AVGConsiderLast)) > 1);
 
 	logline(
 			"maxLoad: " + numToString(maxLoad, 2) + "\ttimeinterval: "
@@ -389,15 +416,9 @@ bool waitLoad(float maxLoad, float time, bool log, float timeout,
 					+ numToString(timeout, 2) + "\tBusy for: "
 					+ numToString(inTime.getRunningTime(), 2), log);
 
-	variables::instance().prefix.pop_back();
+	Variables::instance().prefix.pop_back();
 
 	return true;
-}
-std::string startDisplay() {
-	std::string out = execToString("tightvncserver 2>&1");
-	std::vector<std::string> contentLines = split(out, "\n");
-	contentLines = split(contentLines.at(0), ":");
-	return ":" + contentLines.at(1);
 }
 void mkdir(std::string folder) {
 	execToString(

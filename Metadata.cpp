@@ -16,7 +16,7 @@ void Metadata::setError() {
 	trackNumber = "";
 	length = 0;
 	ad = false;
-	logline("Got wrong Metadata", true);
+	//logline("Got wrong Metadata", true);
 	return;
 }
 std::string Metadata::getArtist() {

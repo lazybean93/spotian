@@ -10,10 +10,10 @@
 
 #include "Metadata.h"
 #include <unistd.h> //sleep
-#include "variables.h"
+#include "Variables.h"
 #include <math.h>
 #include "bass.h"
-#include "timeout.h"
+#include "Timeout.h"
 #include <signal.h>
 #include "Player.h"
 

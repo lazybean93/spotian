@@ -46,7 +46,7 @@ void Recorder::killArecord() {
 Recorder::Recorder() {
 	hwplug = "0,1";
 	prefix = "Recorder:\t";
-	arecordLogfile = variables::instance().getHomeDir() + "/arecordLog.txt";
+	arecordLogfile = Variables::instance().getHomeDir() + "/arecordLog.txt";
 }
 bool Recorder::checkOverrun() {
 	bool success;
@@ -204,39 +204,39 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 		std::string cutstr = "mp3splt -g %\[@o\] \"" + filename + "\" 0.0 "
 				+ numToString((int) cut / 60) + "."
 				+ numToString(round(10 * (cut - ((int) cut / 60) * 60)) / 10)
-				+ " -d " + variables::instance().getHomeDir() + " -o tmp 2>&1;";
+				+ " -d " + Variables::instance().getHomeDir() + " -o tmp 2>&1;";
 		execToString(cutstr);
 
 		//Trim song silence and store to tmp_trimmed.mp3
 		execToString(
-				"mp3splt -r -g %\[@o\] " + variables::instance().getHomeDir()
+				"mp3splt -r -g %\[@o\] " + Variables::instance().getHomeDir()
 						+ "/tmp.mp3 2>&1;");
 
 		//Compare Songlengths of tmp and tmp_trimmed version
 		int lengthCut = getSongLength(
-				variables::instance().getHomeDir() + "/tmp.mp3");
+				Variables::instance().getHomeDir() + "/tmp.mp3");
 		int lengthTrim = getSongLength(
-				variables::instance().getHomeDir() + "/tmp_trimmed.mp3");
+				Variables::instance().getHomeDir() + "/tmp_trimmed.mp3");
 
 		if (1.2 * lengthTrim < lengthCut || lengthTrim < lengthCut - 10) {
 			logline("Trimmed Song is to short - take Cutted", true);
 			execToString(
-					"mv " + variables::instance().getHomeDir() + "/tmp.mp3 "
-							+ variables::instance().getHomeDir()
+					"mv " + Variables::instance().getHomeDir() + "/tmp.mp3 "
+							+ Variables::instance().getHomeDir()
 							+ "/tmp_trimmed.mp3");
 		}
 
-		deleteFile(variables::instance().getHomeDir() + "/tmp.mp3");
+		deleteFile(Variables::instance().getHomeDir() + "/tmp.mp3");
 		logline(prefix + "Check for wrong cutting", true);
 		if (vu20ms.size() - cut * (1 / factor) > 2 && getSongErrors(2) < 5) {
 			incSongErrors(2);
 			logline(prefix + "Errorcount: " + numToString(getSongErrors(2)),
 					true);
-			checkSong(variables::instance().getHomeDir() + "/tmp_trimmed.mp3",
+			checkSong(Variables::instance().getHomeDir() + "/tmp_trimmed.mp3",
 					logActive);
 
 			std::string resetFilename = "mv "
-					+ variables::instance().getHomeDir()
+					+ Variables::instance().getHomeDir()
 					+ "/tmp_trimmed.mp3 \"";
 			std::vector<std::string> splitfold = split(
 					split(filename, ".mp3").at(0), "/");
@@ -244,7 +244,7 @@ bool Recorder::checkSong(std::string filename, bool logActive) {
 				resetFilename += "/" + splitfold.at(i);
 			resetFilename += ".mp3\" 2>&1";
 			execToString(resetFilename);
-			deleteFile(variables::instance().getHomeDir() + "/tmp_trimmed.mp3");
+			deleteFile(Variables::instance().getHomeDir() + "/tmp_trimmed.mp3");
 
 			if (getSongErrors(2) >= 5) {
 				return false;
@@ -292,7 +292,7 @@ void Recorder::startRecording(Metadata m, int num) {
 	cmd += "--tl \"" + m.getAlbum() + "\" "; //Album
 	cmd += "--tn \"" + m.getTrackNumber() + "\" "; //TitleNumber
 	cmd += "--tc \"" + m.getUrl() + "\" "; //Spotify Id as comment
-	cmd += "-r -b 192 - \"" + variables::instance().getDataDir() + "/" + m.getUrlMP3()
+	cmd += "-r -b 192 - \"" + Variables::instance().getDataDir() + "/" + m.getUrlMP3()
 			+ "\" >/dev/null 2>&1 &";
 	execToString(cmd);
 }

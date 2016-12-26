@@ -20,10 +20,7 @@ class Playlist {
 	std::string name;
 	std::string date;
 	std::string folder;
-	std::string playlistNameUri(std::string uri);
 	int currentTrack;
-	Player& player = Player::instance();
-	Recorder& recorder = Recorder::instance();
 	Playlist();
 	Playlist(const Playlist&);
 	Playlist & operator =(const Playlist &);
@@ -34,6 +31,7 @@ public:
 	}
 	~Playlist() {
 	}
+	std::string playlistNameUri(std::string uri,bool addDate = true);
 	bool openPlaylist(std::string uri);
 	int playPlaylist(std::string uri);
 	void readPlaylist();

@@ -1,4 +1,4 @@
-#include "timeout.h"
+#include "Timeout.h"
 #include "tools.h"
 
 Timeout::Timeout(float secs) {
