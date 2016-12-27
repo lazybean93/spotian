@@ -14,6 +14,8 @@
 #include <iomanip>
 #include <sys/time.h>
 
+#define COMMANDSFILE std::string(getenv("HOME")) + "/tmp/commands.txt"
+
 std::string boolToStr(bool var);
 FILE * popen2(std::string command, std::string type, int & pid);
 int pclose2(FILE * fp, pid_t pid);
@@ -40,7 +42,6 @@ int getUTime(int pid);
 float avgCPULoad(float time);
 bool waitLoad(float maxLoad, float time, bool log, float timeout, int AVGConsiderLast,
 		std::string reason = "");
-std::string startDisplay();
 void mkdir(std::string folder);
 bool is_file_exist(std::string fileName);
 #endif /* TOOLS_H_ */

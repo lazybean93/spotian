@@ -12,8 +12,9 @@
 #include <ctime>
 #include "tools.h"
 #include "Variables.h"
+#include "SpotifyController.h"
 #include "Timeout.h"
-#include "Display.h"
+#include "VirtualDisplay.h"
 
 #include "utf8.h"
 
@@ -151,7 +152,7 @@ std::string execToString(std::string command) {
 	//pclose2(pipe,pid);
 	//logline(numToString(pid),true);
 	execToStringDebug(
-			"echo \"" + split(command, " ").at(0) + "\" >> commands.txt");
+			"echo \"" + split(command, " ").at(0) + "\" >> \""+COMMANDSFILE+"\"");
 	return result;
 }
 std::vector<std::string> split(std::string org, std::string separator) {
@@ -313,10 +314,10 @@ std::string dbus(std::string service, std::string path, std::string method,
 		bool *success) {
 	std::string res = execToString(
 			"#std::string_dbus \nqdbus " + service + " " + path + " " + method
-					+ " 2>tmp_" + Display::instance().getDisplay() + ".txt");
+					+ " 2>tmp_" + VirtualDisplay::instance().getVirtualDisplay() + ".txt");
 	std::string check = readFile(
-			"tmp_" + Display::instance().getDisplay() + ".txt");
-	deleteFile("tmp_" + Display::instance().getDisplay() + ".txt");
+			"tmp_" + VirtualDisplay::instance().getVirtualDisplay() + ".txt");
+	deleteFile("tmp_" + VirtualDisplay::instance().getVirtualDisplay() + ".txt");
 	if (check.length() > 1) {
 		logline(check,true);
 		if (success != NULL)
@@ -345,11 +346,11 @@ float avgCPULoad(float time) {
 	timeval startTime, endTime;
 	gettimeofday(&startTime, 0);
 
-	int start = getUTime(Variables::instance().getSpotifyPid());
+	int start = getUTime(SpotifyController::instance().getSpotifyPid());
 
 	usleep(time * 1000000);
 
-	int end = getUTime(Variables::instance().getSpotifyPid());
+	int end = getUTime(SpotifyController::instance().getSpotifyPid());
 	gettimeofday(&endTime, 0);
 
 	return (float) (end - start) / timevalDelta(endTime, startTime);

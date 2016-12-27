@@ -12,6 +12,7 @@
 #include "Metadata.h"
 #include "Player.h"
 #include "Recorder.h"
+#include "SpotifyController.h"
 #include "tools.h"
 
 class Playlist {

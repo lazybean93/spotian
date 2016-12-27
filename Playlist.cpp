@@ -74,7 +74,7 @@ bool Playlist::openPlaylist(std::string uri) {
 	if (!waitLoad(MAXLOADLOADING, 1, true, WAITLOADINGTIMEOUT, 5,
 			"Waiting for Playlist Loading"))
 		return false;
-	Variables::instance().setMainPage(false);
+	SpotifyController::instance().setMainPage(false);
 	return true;
 }
 int Playlist::playPlaylist(std::string uri) {
@@ -87,7 +87,7 @@ int Playlist::playPlaylist(std::string uri) {
 
 	Metadata m1;
 	logline(prefix + "Open URI: " + uri, true);
-	if (Variables::instance().getMainPage()) {
+	if (SpotifyController::instance().getMainPage()) {
 		logline(prefix + "Sleeping some time", true);
 		sleep(10);
 		logline(prefix + "Wokeup!", true);

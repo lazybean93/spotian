@@ -17,14 +17,14 @@
 #define ADTIMEOUT 120
 
 #include <iostream>
-#include "Display.h"
+#include "VirtualDisplay.h"
 #include "tools.h"
 
 class Variables {
+	std::string commandsDebugFile;
 	std::string homedir;
 	std::string musicdir;
 	std::string datadir;
-	int spotifyPid;
 	std::vector<std::string> initPlaylists;
 	std::vector<std::string> initPlaylistTracks;
 	int initPlaylist = 1;
@@ -34,7 +34,6 @@ class Variables {
 	std::string tempLogFile;
 	std::string logFile;
 	bool loginLoggingActive;
-	bool mainPage;
 	Variables();
 	Variables(const Variables&);
 	Variables & operator =(const Variables &);
@@ -42,15 +41,11 @@ public:
 	std::vector<std::string> prefix;
 	static Variables& instance();
 	~Variables();
-	void setMainPage(bool mainPage);
-	bool getMainPage();
 	std::string getHomeDir();
 	std::string getMusicDir();
 	std::string getDataDir();
 	std::string getTestPlaylist();
 	std::string getTestTrack();
-	int getSpotifyPid();
-	void setSpotifyPid(int pid);
 	std::string getUri();
 	void setUri(std::string uri);
 	std::string getUser();
